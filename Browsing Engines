@@ -1,0 +1,228 @@
+public class Browser extends AppCompatActivity {
+
+    private WebView webView;
+    private Button search_engine;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_browser);
+
+        webView = findViewById(R.id.webview);
+        search_engine = findViewById(R.id.search_engines_icon);
+       
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+        webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setSaveFormData(true);
+        webView.getSettings().setSavePassword(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            webView.getSettings().setSafeBrowsingEnabled(true);
+        }
+
+        if (Build.VERSION.SDK_INT >= 21){
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        }
+
+        webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        webView.getSettings().setMediaPlaybackRequiresUserGesture(true);
+        webView.getSettings().setSupportMultipleWindows(false);
+        webView.getSettings().setAllowFileAccess(true);
+        webView.getSettings().setAppCacheEnabled(true);
+        webView.getSettings().setAllowContentAccess(true);
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setDatabaseEnabled(true);
+        webView.getSettings().setAllowFileAccessFromFileURLs(true);
+        webView.getSettings().setAllowUniversalAccessFromFileURLs(true);
+        webView.getSettings().setMixedContentMode(0);
+        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.getSettings().setRenderPriority(WebSettings.RenderPriority.HIGH);
+        webView.getSettings().setGeolocationEnabled(true);
+        webView.getSettings().setGeolocationDatabasePath(getFilesDir().getPath());
+        CookieManager.getInstance().setAcceptCookie(true);
+        webView.requestFocus();
+
+        
+         //------------------------ This method for change the browsing engine -------------------->
+
+        search_engine.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final Dialog dialog = new Dialog(Browser.this);
+                dialog.setContentView(R.layout.search_engines_layout);
+                dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                dialog.getWindow().setWindowAnimations(R.style.animations);
+
+                final RelativeLayout google, yahoo, bing, duck;
+                ImageView google_check, yahoo_check, bing_check, duck_check;
+
+                google = dialog.findViewById(R.id.google_layout);
+                yahoo = dialog.findViewById(R.id.yahoo_layout);
+                bing = dialog.findViewById(R.id.bing_layout);
+                duck = dialog.findViewById(R.id.duck_layout);
+
+                google_check = dialog.findViewById(R.id.google_checked);
+                yahoo_check = dialog.findViewById(R.id.yahoo_checked);
+                bing_check = dialog.findViewById(R.id.bing_checked);
+                duck_check = dialog.findViewById(R.id.duck_checked);
+
+
+                google.setOnClickListener(new View.OnClickListener() {
+                    @SuppressLint("UseCompatLoadingForDrawables")
+                    @Override
+                    public void onClick(View v) {
+                        helper.deleteAllEngineName();
+                        helper.insertEngineName("google");
+                        search_engine.setText("G");
+                        String text = webView.getTitle();
+                        if (text.endsWith("- Bing"))
+                        {
+                            webView.loadUrl("https://www.google.com/search?q=" + text.replace(text.substring(text.length()-7), ""));
+                        }
+                        if (text.endsWith("DuckDuckGo"))
+                        {
+                            webView.loadUrl("https://www.google.com/search?q=" + text.replace(text.substring(text.length()-14), ""));
+                        }
+                        if (text.endsWith("Yahoo India Search Results"))
+                        {
+                            webView.loadUrl("https://www.google.com/search?q=" + text.replace(text.substring(text.length()-28), ""));
+                        }
+                        if (text.endsWith("Google Search"))
+                        {
+                            webView.loadUrl("https://www.google.com/search?q=" + text.replace(text.substring(text.length()-16), ""));
+                        }
+                        dialog.dismiss();
+                    }
+                });
+
+                yahoo.setOnClickListener(new View.OnClickListener() {
+                    @SuppressLint("UseCompatLoadingForDrawables")
+                    @Override
+                    public void onClick(View v) {
+                        helper.deleteAllEngineName();
+                        helper.insertEngineName("yahoo");
+                        search_engine.setText("Y");
+                        String text = webView.getTitle();
+                        if (text.endsWith("- Bing"))
+                        {
+                            webView.loadUrl("https://in.search.yahoo.com/search?p=" + text.replace(text.substring(text.length()-7), ""));
+                        }
+                        if (text.endsWith("DuckDuckGo"))
+                        {
+                            webView.loadUrl("https://in.search.yahoo.com/search?p=" + text.replace(text.substring(text.length()-14), ""));
+                        }
+                        if (text.endsWith("Yahoo India Search Results"))
+                        {
+                            webView.loadUrl("https://in.search.yahoo.com/search?p=" + text.replace(text.substring(text.length()-28), ""));
+                        }
+                        if (text.endsWith("Google Search"))
+                        {
+                            webView.loadUrl("https://in.search.yahoo.com/search?p=" + text.replace(text.substring(text.length()-16), ""));
+                        }
+                        dialog.dismiss();
+                    }
+                });
+
+                bing.setOnClickListener(new View.OnClickListener() {
+                    @SuppressLint("UseCompatLoadingForDrawables")
+                    @Override
+                    public void onClick(View v) {
+                        helper.deleteAllEngineName();
+                        helper.insertEngineName("bing");
+                        search_engine.setText("B");
+                        String text = webView.getTitle();
+                        if (text.endsWith("- Bing"))
+                        {
+                            webView.loadUrl("https://www.bing.com/search?q=" + text.replace(text.substring(text.length()-7), ""));
+                        }
+                        if (text.endsWith("DuckDuckGo"))
+                        {
+                            webView.loadUrl("https://www.bing.com/search?q=" + text.replace(text.substring(text.length()-14), ""));
+                        }
+                        if (text.endsWith("Yahoo India Search Results"))
+                        {
+                            webView.loadUrl("https://www.bing.com/search?q=" + text.replace(text.substring(text.length()-28), ""));
+                        }
+                        if (text.endsWith("Google Search"))
+                        {
+                            webView.loadUrl("https://www.bing.com/search?q=" + text.replace(text.substring(text.length()-16), ""));
+                        }
+                        dialog.dismiss();
+                    }
+                });
+
+                duck.setOnClickListener(new View.OnClickListener() {
+                    @SuppressLint("UseCompatLoadingForDrawables")
+                    @Override
+                    public void onClick(View v) {
+                        helper.deleteAllEngineName();
+                        helper.insertEngineName("duck");
+                        search_engine.setText("D");
+                        String text = webView.getTitle();
+                        if (text.endsWith("- Bing"))
+                        {
+                            webView.loadUrl("https://duckduckgo.com/?q=" + text.replace(text.substring(text.length()-7), ""));
+                        }
+                        if (text.endsWith("DuckDuckGo"))
+                        {
+                            webView.loadUrl("https://duckduckgo.com/?q=" + text.replace(text.substring(text.length()-14), ""));
+                        }
+                        if (text.endsWith("Yahoo India Search Results"))
+                        {
+                            webView.loadUrl("https://duckduckgo.com/?q=" + text.replace(text.substring(text.length()-28), ""));
+                        }
+                        if (text.endsWith("Google Search"))
+                        {
+                            webView.loadUrl("https://duckduckgo.com/?q=" + text.replace(text.substring(text.length()-16), ""));
+                        }
+                        dialog.dismiss();
+                    }
+                });
+
+
+
+                final Cursor cursor = database.rawQuery("SELECT NAME FROM Engine", new String[]{});
+                if (cursor.getCount() == 0)
+                {
+                    helper.insertEngineName("google");
+                    search_engine.setText("G");
+                    google_check.setImageDrawable(getDrawable(R.drawable.ic_circle_checked));
+                    cursor.close();
+                }
+                else
+                {
+                    cursor.moveToFirst();
+                    String icon = cursor.getString(0);
+                    if (icon.equals("google"))
+                    {
+                        google_check.setImageDrawable(getDrawable(R.drawable.ic_circle_checked));
+                    }
+                    if (icon.equals("yahoo"))
+                    {
+                        yahoo_check.setImageDrawable(getDrawable(R.drawable.ic_circle_checked));
+                    }
+                    if (icon.equals("bing"))
+                    {
+                        bing_check.setImageDrawable(getDrawable(R.drawable.ic_circle_checked));
+                    }
+                    if (icon.equals("duck"))
+                    {
+                        duck_check.setImageDrawable(getDrawable(R.drawable.ic_circle_checked));
+                    }
+                }
+
+
+
+                dialog.create();
+                dialog.show();
+            }
+        });
+
+
+    }
+
+    }
+}
