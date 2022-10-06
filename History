@@ -1,0 +1,322 @@
+public class History extends AppCompatActivity {
+
+    Browser_Databse_Helper helper;
+    RecyclerView recyclerView;
+    Bitmap bitmap;
+    ArrayList<String> Title = new ArrayList<>();
+    ArrayList<String> history_Url = new ArrayList<>();
+    ArrayList<String> Id  = new ArrayList<>();
+    ArrayList<Bitmap> Icon = new ArrayList<>();
+    ArrayList<Bitmap> PAGE = new ArrayList<>();
+    HistoryAdapter adapter;
+    
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_history);
+
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        getWindow().setStatusBarColor(getColor(R.color.light_grey));
+
+        recyclerView = findViewById(R.id.history_list);
+        helper = new Browser_Databse_Helper(this);
+        
+        
+        final SQLiteDatabase database = helper.getReadableDatabase();
+        Cursor cursor = database.rawQuery("SELECT NAME, URL, IMAGE, PAGE, ID FROM History ORDER BY ID DESC", new String[]{});
+        if (cursor.getCount() != 0)
+        {
+            TextView empty = findViewById(R.id.empty_list);
+            empty.setVisibility(View.INVISIBLE);
+            cursor.moveToFirst();
+            Title.clear();
+            history_Url.clear();
+            Icon.clear();
+            PAGE.clear();
+            Id.clear();
+
+            do {
+                String title = cursor.getString(0);
+                String url = cursor.getString(1);
+                byte[] icon = cursor.getBlob(2);
+                byte[] image = cursor.getBlob(3);
+                String id = cursor.getString(4);
+
+                if (icon != null)
+                {
+                    ICON = BitmapFactory.decodeByteArray(icon, 0, icon.length);
+                }
+                if (image != null)
+                {
+                    IMAGE = BitmapFactory.decodeByteArray(image, 0, image.length);
+                }
+
+                Title.add(title);
+                history_Url.add(url);
+                Icon.add(ICON);
+                PAGE.add(IMAGE);
+                Id.add(id);
+
+            }while (cursor.moveToNext());
+            cursor.close();
+        }else {
+            TextView empty = findViewById(R.id.empty_list);
+            empty.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.INVISIBLE);
+        }
+
+        adapter = new HistoryAdapter(Title, PAGE, Icon);
+
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE)
+        {
+            GridLayoutManager gridLayoutManager = new GridLayoutManager(getApplicationContext(), 4, GridLayoutManager.VERTICAL, false);
+            recyclerView.setLayoutManager(gridLayoutManager);
+            recyclerView.setAdapter(adapter);
+        }
+        else
+        {
+            GridLayoutManager gridLayoutManager = new GridLayoutManager(getApplicationContext(), 2, GridLayoutManager.VERTICAL, false);
+            recyclerView.setLayoutManager(gridLayoutManager);
+            recyclerView.setAdapter(adapter);
+
+        }
+
+
+
+
+        adapter.setOnItemClickListener(new HistoryAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(int position) {
+
+                String title = history_Url.get(position);
+                Intent intent = new Intent(getApplicationContext(), Browser.class);
+                intent.putExtra("search", title);
+                startActivity(intent);
+                finish();
+            }
+
+
+            @Override
+            public void onDeleteClick(final int position) {
+
+                String id = Id.get(position);
+                helper.deleteHistoryById(id);
+
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        Title.remove(position);
+                        history_Url.remove(position);
+                        Icon.remove(position);
+                        PAGE.remove(position);
+                        Id.remove(position);
+                        adapter.notifyItemRemoved(position);
+
+                        Toast.makeText(History.this, "Deleted", Toast.LENGTH_SHORT).show();
+
+                        SQLiteDatabase database = helper.getReadableDatabase();
+                        Cursor cursor = database.rawQuery("SELECT * FROM History ", new String[]{});
+
+                        if (cursor.getCount() == 0)
+                        {
+                            setActions();
+                            cursor.close();
+                        }
+
+                    }
+                }, 200);
+
+            }
+
+            @Override
+            public void onCopyClick(int position) {
+
+                ClipData clipData = ClipData.newPlainText("label", history_Url.get(position));
+                ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                manager.setPrimaryClip(clipData);
+                Toast.makeText(History.this, "Copied link", Toast.LENGTH_SHORT).show();
+
+            }
+
+            @Override
+            public void onShareClick(int position) {
+
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.putExtra(Intent.EXTRA_TEXT, history_Url.get(position));
+                intent.setType("text/plain");
+                startActivity(Intent.createChooser(intent, "Share link with"));
+
+            }
+        });
+
+
+
+        adapter.setOnItemLongClickListener(new HistoryAdapter.OnItemLongClickListener() {
+            @SuppressLint("UseCompatLoadingForDrawables")
+            @Override
+            public void onLongClick(int position) {
+                final Dialog dialog = new Dialog(History.this);
+                dialog.setContentView(R.layout.activity_image__viewer);
+                Objects.requireNonNull(dialog.getWindow()).setBackgroundDrawable(getDrawable(R.drawable.menu_back_transparent));
+
+                TextView close_image = dialog.findViewById(R.id.close_image);
+
+                close_image.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                    }
+                });
+
+                Bitmap bitmap = PAGE.get(position);
+                ImageView image = dialog.findViewById(R.id.image_viewer);
+                image.setImageBitmap(bitmap);
+
+                dialog.show();
+            }
+        });
+
+        
+   }
+}
+
+
+
+
+
+class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.historyViewholder>{
+
+    private ArrayList<String> title;
+    private ArrayList<Bitmap> page;
+    private ArrayList<Bitmap> icon;
+    private OnItemClickListener Listener;
+    private OnItemLongClickListener LongListener;
+
+
+
+    public interface OnItemClickListener {
+
+        void onItemClick(int position);
+        void onDeleteClick(int position);
+        void onCopyClick(int position);
+        void onShareClick(int position);
+    }
+
+
+    public interface OnItemLongClickListener{
+        void onLongClick(int position);
+    }
+
+
+
+    void setOnItemClickListener(OnItemClickListener listener)
+    {
+        Listener = listener;
+    }
+
+
+    void setOnItemLongClickListener(OnItemLongClickListener longListener){
+        LongListener = longListener;
+    }
+
+
+
+
+    HistoryAdapter(ArrayList<String> title, ArrayList<Bitmap> page, ArrayList<Bitmap> icon){
+        this.title = title;
+        this.page = page;
+        this.icon = icon;
+    }
+
+
+
+
+    @NonNull
+    @Override
+    public HistoryAdapter.historyViewholder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.screenshot_list, parent, false);
+
+        return new historyViewholder(view, Listener, LongListener);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull HistoryAdapter.historyViewholder holder, int position) {
+
+        Bitmap pageShot = page.get(position);
+        Bitmap iconShot = icon.get(position);
+        String titleStr= title.get(position);
+
+        holder.PageShot.setImageBitmap(pageShot);
+        holder.IconShot.setImageBitmap(iconShot);
+        holder.TitleShot.setText(titleStr);
+
+    }
+
+    @Override
+    public int getItemCount() {
+        return title.size();
+    }
+
+    static class historyViewholder extends RecyclerView.ViewHolder
+    {
+        ImageView PageShot, IconShot;
+        TextView TitleShot, delete;
+
+        public historyViewholder(@NonNull View itemView, final OnItemClickListener listener, final OnItemLongClickListener longListener) {
+            super(itemView);
+
+            PageShot = itemView.findViewById(R.id.tabs_image);
+            IconShot = itemView.findViewById(R.id.tabs_icon);
+            TitleShot = itemView.findViewById(R.id.tabs_title);
+            delete = itemView.findViewById(R.id.selected_tab_close);
+
+
+            PageShot.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null){
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION){
+                            listener.onItemClick(position);
+                        }
+                    }
+                }
+            });
+
+
+
+            PageShot.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (longListener != null){
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION){
+                            longListener.onLongClick(position);
+                        }
+                    }
+                    return false;
+                }
+            });
+
+
+
+            delete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null){
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION){
+                            listener.onDeleteClick(position);
+                        }
+                    }
+                }
+            });
+
+
+        }
+    }
+}
