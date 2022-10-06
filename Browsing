@@ -1,0 +1,224 @@
+public class Browser extends AppCompatActivity {
+
+        private WebView webView;
+        
+        
+      @Override
+      protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_browser);
+
+        WebView.enableSlowWholeDocumentDraw(); //----- Enabling webPage drawing --------------->
+
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+        webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setSaveFormData(true);
+        webView.getSettings().setSavePassword(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            webView.getSettings().setSafeBrowsingEnabled(true);
+        }
+
+        if (Build.VERSION.SDK_INT >= 21){
+            webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        }
+
+        webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        webView.getSettings().setMediaPlaybackRequiresUserGesture(true);
+        webView.getSettings().setSupportMultipleWindows(false);
+        webView.getSettings().setAllowFileAccess(true);
+        webView.getSettings().setAppCacheEnabled(true);
+        webView.getSettings().setAllowContentAccess(true);
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setDatabaseEnabled(true);
+        webView.getSettings().setAllowFileAccessFromFileURLs(true);
+        webView.getSettings().setAllowUniversalAccessFromFileURLs(true);
+        webView.getSettings().setMixedContentMode(0);
+        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.getSettings().setRenderPriority(WebSettings.RenderPriority.HIGH);
+        webView.getSettings().setGeolocationEnabled(true);
+        webView.getSettings().setGeolocationDatabasePath(getFilesDir().getPath());
+        CookieManager.getInstance().setAcceptCookie(true);
+        webView.requestFocus();
+
+
+        //--------------------------- Set WebChrome Client ---------------------------------------->
+
+        webView.setWebChromeClient(new WebChromeClient() {
+
+            //-------------------------------- Web ProgressBar ----------------------------------->
+
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+
+                //--------------- Search Progress --------------------------->
+
+                ConnectivityManager manager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+
+                if (networkInfo != null) {
+
+                    progressBar.setProgress(newProgress);
+                    progressBar.setVisibility(ProgressBar.VISIBLE);
+                    searching_progress.setVisibility(View.VISIBLE);
+
+                    if (newProgress < 100 && progressBar.getVisibility() == ProgressBar.GONE) {
+                        progressBar.setVisibility(ProgressBar.VISIBLE);
+                        searching_progress.setVisibility(View.VISIBLE);
+                        search_engine.setVisibility(View.INVISIBLE);
+                    }
+                    if (newProgress == 100) {
+                        progressBar.setVisibility(ProgressBar.GONE);
+                        searching_progress.setVisibility(View.INVISIBLE);
+                        search_engine.setVisibility(View.VISIBLE);
+                    } else {
+                        progressBar.setVisibility(ProgressBar.VISIBLE);
+                        searching_progress.setVisibility(View.VISIBLE);
+                        search_engine.setVisibility(View.INVISIBLE);
+                    }
+
+                }
+                else
+                {
+                    progressBar.setVisibility(View.GONE);
+                    searching_progress.setVisibility(View.INVISIBLE);
+                    search_engine.setVisibility(View.VISIBLE);
+                }
+
+
+
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+
+                if (web_search_boolean.equals(true))
+                {
+                    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                    getWindow().setStatusBarColor(getColor(R.color.grey));
+                    getWindow().setNavigationBarColor(getColor(R.color.white));
+                    web_search_boolean = Boolean.valueOf("false");
+                    backPress_boolean = Boolean.valueOf("false");
+                    webLayout_boolean = Boolean.valueOf("true");
+
+                    if (code_boolean.equals(true))
+                    {
+                        code_boolean = Boolean.valueOf("false");
+                        code = code + 1;
+                    }
+
+
+                    //------------------------ Viewing Numbers of Tabs ------------------------>
+
+                    Cursor total_tabs = database.rawQuery("SELECT * FROM TABS", new String[]{});
+                    if (total_tabs.getCount() != 0)
+                    {
+                        //TextView view_tabs = findViewById(R.id.browser_activity_count);
+                        //String tabs = "" + total_tabs.getCount();
+                        //view_tabs.setText(tabs);
+                        total_tabs.close();
+                    }
+
+
+                }
+
+            }
+            
+            
+            
+            
+            
+            
+            //----------------------------------- Receiving Title --------------------------------->
+            @SuppressLint("UseCompatLoadingForDrawables")
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                super.onReceivedTitle(view, title);
+
+                add_bookmark_title = title;
+                url_title.setText(title);
+
+                SQLiteDatabase database = helper.getReadableDatabase();
+                final Cursor cursor = database.rawQuery("SELECT NAME FROM Bookmark WHERE NAME = ?", new String[]{title});
+                if (cursor.getCount() != 0)
+                {
+                    add_bookmark.setImageDrawable(getDrawable(R.drawable.already_bookmark));
+                    cursor.close();
+                }
+                else
+                {
+                    add_bookmark.setImageDrawable(getDrawable(R.drawable.ic_add_to_bookmark));
+                }
+
+                if (insert_boolean.equals(false)){
+                    insert_boolean = true;
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            HistoryAsyncTask task = new HistoryAsyncTask();
+                            task.execute();
+
+                        }
+                    }, 1000);
+                }
+            }
+
+
+
+            //----------------------------------- Receiving Icon ---------------------------------->
+            @Override
+            public void onReceivedIcon(WebView view, Bitmap icon) {
+                super.onReceivedIcon(view, icon);
+
+                bitmap_db = null;
+                bitmap_db = icon;
+
+                if (insert_boolean.equals(false)){
+                    insert_boolean = true;
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            HistoryAsyncTask task = new HistoryAsyncTask();
+                            task.execute();
+
+                        }
+                    }, 1000);
+                }
+
+
+            }
+            
+            
+            
+            
+            
+            
+             //--------------------------- Go to Download & Play Menu -------------------------------------->
+
+        webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(final String fileUrl, final String userAgent, final String contentDisposition, final String mimetype, long contentLength) {
+
+                mimetype_str = mimetype;   contentDisposition_str = contentDisposition;     file_url = fileUrl;
+
+                if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
+                {
+                    Download_Web_Files webFiles = new Download_Web_Files(Browser.this);
+                    webFiles.getDownloadWebFiles(file_url, mimetype, contentDisposition, helper, view);
+                }
+                else
+                {
+                    ActivityCompat.requestPermissions(Browser.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, STORAGE_CODE);
+                }
+
+
+
+            }
+        });
+        
+    }
+}
+
