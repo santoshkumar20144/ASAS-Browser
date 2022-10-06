@@ -1,0 +1,300 @@
+public class Bookmarks extends AppCompatActivity {
+
+    Browser_Databse_Helper helper;
+    RecyclerView recyclerView;
+    Bitmap bitmap_icon, bitmap_page;
+    BookmarkAdapter adapter;
+    ArrayList<String> list = new ArrayList<>();
+    ArrayList<Bitmap> bookmark_page = new ArrayList<>();
+    ArrayList<Bitmap> bookmark_icon = new ArrayList<>();
+    ArrayList<String> Url = new ArrayList<>();
+    ArrayList<String> Id = new ArrayList<>();
+    
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_bookmarks);
+
+
+        Objects.requireNonNull(getSupportActionBar()).hide();
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        getWindow().setStatusBarColor(getColor(R.color.light_grey));
+        getWindow().setNavigationBarColor(getColor(R.color.white));
+
+
+        recyclerView = findViewById(R.id.bookmark_listview);
+        helper = new Browser_Databse_Helper(this);
+        
+        
+        final SQLiteDatabase database = helper.getReadableDatabase();
+        final Cursor cursor = database.rawQuery("SELECT NAME, IMAGE, URL, PAGE, ID FROM Bookmark ORDER BY ID DESC ", new String[]{});
+
+        if (cursor.getCount() == 0)
+        {
+
+            recyclerView.setVisibility(View.INVISIBLE);
+            TextView noItems = findViewById(R.id.empty_list);
+            noItems.setVisibility(View.VISIBLE);
+            cursor.close();
+
+        }
+        else
+        {
+            list.clear();
+            bookmark_icon.clear();
+            bookmark_page.clear();
+            Url.clear();
+            Id.clear();
+
+            recyclerView.setVisibility(View.VISIBLE);
+            TextView noItems = findViewById(R.id.empty_list);
+            noItems.setVisibility(View.INVISIBLE);
+
+            cursor.moveToFirst();
+
+            do {
+
+                String title = cursor.getString(0);
+                byte[] icon = cursor.getBlob(1);
+                String url = cursor.getString(2);
+                byte[] page = cursor.getBlob(3);
+                String id = cursor.getString(4);
+
+                if (icon != null) {
+                    bitmap_icon = BitmapFactory.decodeByteArray(icon, 0, icon.length);
+                }
+                if (page != null){
+                    bitmap_page = BitmapFactory.decodeByteArray(page, 0, page.length);
+                }
+
+                list.add(title);
+                bookmark_icon.add(bitmap_icon);
+                bookmark_page.add(bitmap_page);
+                Url.add(url);
+                Id.add(id);
+
+            }while (cursor.moveToNext());
+
+        }
+
+
+
+        adapter = new BookmarkAdapter(list, bookmark_icon, bookmark_page);
+
+        int orientation = getResources().getConfiguration().orientation;
+        GridLayoutManager manager;
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE)
+        {
+            manager = new GridLayoutManager(getApplicationContext(), 4, GridLayoutManager.VERTICAL, false);
+        }
+        else
+        {
+            manager = new GridLayoutManager(getApplicationContext(), 2, GridLayoutManager.VERTICAL, false);
+        }
+        recyclerView.setLayoutManager(manager);
+        recyclerView.setAdapter(adapter);
+
+
+        adapter.setOnItemClicklistener(new BookmarkAdapter.OnItemClickListener() {
+            @Override
+            public void OnItemClick(int position) {
+
+                String url = Url.get(position);
+                Intent intent = new Intent(getApplicationContext(), Browser.class);
+                intent.putExtra("search", url);
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void OnDeleteClick(final int position) {
+
+                String id = Id.get(position);
+                helper.deleteBookmarkData(id);
+
+                new Handler().postDelayed(() -> {
+
+                    list.remove(position);
+                    bookmark_icon.remove(position);
+                    bookmark_page.remove(position);
+                    Url.remove(position);
+                    Id.remove(position);
+                    adapter.notifyItemRemoved(position);
+                    Toast.makeText(Bookmarks.this, "Deleted", Toast.LENGTH_SHORT).show();
+
+                    SQLiteDatabase database1 = helper.getReadableDatabase();
+                    Cursor cursor1 = database1.rawQuery("SELECT * FROM Bookmark ", new String[]{});
+
+                    if (cursor1.getCount() == 0)
+                    {
+                        setActions();
+                        cursor1.close();
+                    }
+
+                }, 200);
+
+            }
+
+            @Override
+            public void OnShareClick(int position) {
+
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.putExtra(Intent.EXTRA_TEXT, Url.get(position));
+                intent.setType("text/plain");
+                startActivity(Intent.createChooser(intent, "Share link via"));
+
+            }
+
+            @Override
+            public void OnCopyClick(int position) {
+
+                ClipData data = ClipData.newPlainText("label", Url.get(position));
+                ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                manager.setPrimaryClip(data);
+                Toast.makeText(Bookmarks.this, "Copied link", Toast.LENGTH_SHORT).show();
+
+            }
+        });
+
+        
+    }
+ }
+ 
+ 
+ 
+ 
+ 
+ class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.bookmarkViewHolder>
+{
+    private final ArrayList<String> title;
+    private final ArrayList<Bitmap> icon;
+    private final ArrayList<Bitmap> page;
+    private OnItemClickListener mListener;
+    private OnItemLongClickListener mLongClickListener;
+
+
+    public interface OnItemClickListener {
+
+        void OnItemClick(int position);
+        void OnDeleteClick(int position);
+        void OnShareClick(int position);
+        void OnCopyClick(int position);
+
+    }
+
+
+    public interface OnItemLongClickListener {
+
+        void onItemLongClick(int position);
+
+    }
+
+
+    void setOnItemClicklistener(OnItemClickListener listener)
+    {
+        mListener = listener;
+    }
+
+
+    void setOnItemLongClickListener(OnItemLongClickListener listener)
+    {
+        mLongClickListener = listener;
+    }
+
+
+
+
+    BookmarkAdapter(ArrayList<String> list, ArrayList<Bitmap> image, ArrayList<Bitmap> page) {
+        this.title = list;
+        this.icon = image;
+        this.page = page;
+    }
+
+
+    @NonNull
+    @Override
+    public BookmarkAdapter.bookmarkViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.screenshot_list, parent, false);
+
+        return new bookmarkViewHolder(view, mListener, mLongClickListener);
+    }
+
+
+    @Override
+    public void onBindViewHolder(@NonNull BookmarkAdapter.bookmarkViewHolder holder, int position) {
+
+        String string = title.get(position);
+        Bitmap bitmap_icon = icon.get(position);
+        Bitmap bitmap_page = page.get(position);
+
+        holder.textView.setText(string);
+        holder.icon.setImageBitmap(bitmap_icon);
+        holder.image.setImageBitmap(bitmap_page);
+
+
+    }
+
+
+    @Override
+    public int getItemCount() {
+        return title.size();
+    }
+
+
+
+    static class bookmarkViewHolder extends RecyclerView.ViewHolder
+    {
+
+        TextView textView, delete;
+        ImageView image, icon;
+
+        bookmarkViewHolder(@NonNull View itemView, final OnItemClickListener listener, final OnItemLongClickListener longClickListener) {
+            super(itemView);
+
+            textView = itemView.findViewById(R.id.tabs_title);
+            image = itemView.findViewById(R.id.tabs_image);
+            icon = itemView.findViewById(R.id.tabs_icon);
+            delete = itemView.findViewById(R.id.selected_tab_close);
+
+
+            image.setOnClickListener(v -> {
+
+                if (listener != null)
+                {
+                    int position = getAdapterPosition();
+
+                    if (position != RecyclerView.NO_POSITION)
+                    {
+
+                        listener.OnItemClick(position);
+
+                    }
+                }
+
+            });
+
+
+
+            delete.setOnClickListener(v -> {
+
+                if (listener != null)
+                {
+                    int position = getAdapterPosition();
+                    if(position != RecyclerView.NO_POSITION)
+                    {
+
+                        listener.OnDeleteClick(position);
+
+                    }
+                }
+
+            });
+
+
+        }
+    }
+
+
+}
