@@ -8,7 +8,7 @@ public class Browser extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_browser);
 
-        WebView.enableSlowWholeDocumentDraw(); //----- Enabling webPage drawing --------------->
+        webView = findViewById(R.id.webview);
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
