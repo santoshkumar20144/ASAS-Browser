@@ -8,4 +8,4 @@ Under this game, there is :-
   Ten lives (with refilling), 
   Points and Coins to collect after completing the levels, 
   Five real JACKPOT GIFTS. Each phases are containing 20 levels, means there is total hundred levels.
-  And players can also see how many points and coins are got/obtained on each separate phases.
+  And players can also see how many points and coins are got/obtained on each separate phases. 
