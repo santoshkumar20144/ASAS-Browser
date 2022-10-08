@@ -3,9 +3,9 @@
 	This project is design to browse user searches, download web files, and play audio and video, save their study material with different format and many more that can be   suitable for different level of users.
 	This application is mainly focused on that user can store their study material from webpages through the help of some available features from ASAS Browser.
 
-Under this game, there is :-
-  Three phases, 
-  Ten lives (with refilling), 
-  Points and Coins to collect after completing the levels, 
-  Five real JACKPOT GIFTS. Each phases are containing 20 levels, means there is total hundred levels.
-  And players can also see how many points and coins are got/obtained on each separate phases. 
+
+
+
+
+
+
